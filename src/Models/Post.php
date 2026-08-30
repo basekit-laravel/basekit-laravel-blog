@@ -56,6 +56,13 @@ class Post extends Model
         return 'slug';
     }
 
+    public function isPublished(): bool
+    {
+        return $this->is_published
+            && $this->published_at !== null
+            && $this->published_at->isPast();
+    }
+
     public function getPublishedShortAttribute(): string
     {
         return $this->published_at?->format('M j, Y') ?? '';

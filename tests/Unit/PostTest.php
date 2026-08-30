@@ -68,3 +68,32 @@ it('derives a seo description from the excerpt', function (): void {
 
     expect($post->seo_description)->toBe('A useful excerpt about caching.');
 });
+
+it('knows whether a post is published', function (): void {
+    expect(Post::create([
+        'title' => 'Published',
+        'slug' => 'published',
+        'excerpt' => 'Exc.',
+        'content' => '<p>Body.</p>',
+        'is_published' => true,
+        'published_at' => now()->subDay(),
+    ])->isPublished())->toBeTrue();
+
+    expect(Post::create([
+        'title' => 'Draft',
+        'slug' => 'draft',
+        'excerpt' => 'Exc.',
+        'content' => '<p>Body.</p>',
+        'is_published' => false,
+        'published_at' => now()->subDay(),
+    ])->isPublished())->toBeFalse();
+
+    expect(Post::create([
+        'title' => 'Future',
+        'slug' => 'future',
+        'excerpt' => 'Exc.',
+        'content' => '<p>Body.</p>',
+        'is_published' => true,
+        'published_at' => now()->addDay(),
+    ])->isPublished())->toBeFalse();
+});

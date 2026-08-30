@@ -1,6 +1,8 @@
 <?php
 
 declare(strict_types=1);
+use BasekitLaravel\BasekitLaravelBlog\Models\Post;
+use Carbon\CarbonInterface;
 use TailwindMerge\TailwindMerge;
 
 /*
@@ -14,5 +16,20 @@ if (! function_exists('twMerge')) {
     function twMerge(...$classLists): string
     {
         return TailwindMerge::instance()->merge($classLists);
+    }
+}
+
+if (! function_exists('makePost')) {
+    function makePost(string $slug, string $category, ?CarbonInterface $publishedAt = null): Post
+    {
+        return Post::create([
+            'title' => str($slug)->headline()->toString(),
+            'slug' => $slug,
+            'excerpt' => 'Exc.',
+            'content' => '<p>Body.</p>',
+            'category' => $category,
+            'is_published' => true,
+            'published_at' => $publishedAt ?? now()->subDay(),
+        ]);
     }
 }
