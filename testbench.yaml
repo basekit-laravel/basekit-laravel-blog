@@ -1,0 +1,4 @@
+providers:
+  - BasekitLaravel\BasekitLaravelBlog\BasekitLaravelBlogServiceProvider
+  - BasekitLaravel\BasekitLaravelBlocks\BasekitLaravelBlocksServiceProvider
+  - BasekitLaravel\BasekitLaravelUi\BasekitServiceProvider
