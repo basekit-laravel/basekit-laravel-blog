@@ -13,12 +13,8 @@
   "license": "MIT",
   "repositories": [
     {
-      "type": "path",
-      "url": "../basekit-laravel-ui"
-    },
-    {
-      "type": "path",
-      "url": "../basekit-laravel-blocks"
+      "type": "vcs",
+      "url": "https://github.com/basekit-laravel/basekit-laravel-blocks.git"
     }
   ],
   "authors": [
@@ -30,8 +26,8 @@
   ],
   "require": {
     "php": "^8.3|^8.4|^8.5",
-    "basekit-laravel/basekit-laravel-ui": "@dev",
-    "basekit-laravel/basekit-laravel-blocks": "@dev",
+    "basekit-laravel/basekit-laravel-ui": "^1.11",
+    "basekit-laravel/basekit-laravel-blocks": "^1.5",
     "illuminate/contracts": "^13",
     "illuminate/database": "^13",
     "illuminate/http": "^13",
