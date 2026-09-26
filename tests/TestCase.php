@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace BasekitLaravel\BasekitLaravelBlog\Tests;
 
-use BasekitLaravel\BasekitLaravelBlocks\BasekitLaravelBlocksServiceProvider;
 use BasekitLaravel\BasekitLaravelBlog\BasekitLaravelBlogServiceProvider;
-use BasekitLaravel\BasekitLaravelUi\BasekitServiceProvider;
-use BladeUI\Heroicons\BladeHeroiconsServiceProvider;
-use BladeUI\Icons\BladeIconsServiceProvider;
+use BasekitLaravel\BasekitLaravelBlog\Tests\TestSupport\Models\User;
+use BasekitLaravel\BasekitLaravelSeo\BasekitLaravelSeoServiceProvider;
+use BasekitLaravel\BasekitLaravelSlugs\BasekitLaravelSlugsServiceProvider;
+use BasekitLaravel\BasekitLaravelSlugs\HasSlugs;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 use Orchestra\Testbench\TestCase as Orchestra;
+use ReflectionClass;
 
 abstract class TestCase extends Orchestra
 {
-    #[\Override]
     protected function setUp(): void
     {
         parent::setUp();
-
-        $migration = include __DIR__.'/../database/migrations/2026_01_01_000001_create_posts_table.php';
-        $migration->up();
+        $this->migratePackageDatabase();
     }
 
     #[\Override]
@@ -31,11 +31,9 @@ abstract class TestCase extends Orchestra
     protected function getPackageProviders($app): array
     {
         return [
-            BladeIconsServiceProvider::class,
-            BladeHeroiconsServiceProvider::class,
+            BasekitLaravelSlugsServiceProvider::class,
+            BasekitLaravelSeoServiceProvider::class,
             BasekitLaravelBlogServiceProvider::class,
-            BasekitLaravelBlocksServiceProvider::class,
-            BasekitServiceProvider::class,
         ];
     }
 
@@ -48,6 +46,54 @@ abstract class TestCase extends Orchestra
             'driver' => 'sqlite',
             'database' => ':memory:',
             'prefix' => '',
+            'foreign_key_constraints' => true,
         ]);
+
+        $app['config']->set('basekit-laravel-blog.models.user', User::class);
+
+        $app['config']->set('basekit-laravel-seo.defaults.site_name', 'Testing Blog');
+
+        Schema::create('users', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * The blog publishes its migrations to the consuming application, so the
+     * suite applies them itself in filename order. The slugs package loads its
+     * migration from the package, so it is located through the installed class.
+     */
+    protected function migratePackageDatabase(): void
+    {
+        $paths = [
+            __DIR__.'/../database/migrations',
+            $this->slugsMigrationPath(),
+        ];
+
+        foreach ($paths as $path) {
+            $files = glob($path.'/*.php');
+
+            if ($files === false) {
+                continue;
+            }
+
+            sort($files);
+
+            foreach ($files as $file) {
+                $migration = include $file;
+
+                $migration->up();
+            }
+        }
+    }
+
+    protected function slugsMigrationPath(): string
+    {
+        /** @var string $trait */
+        $trait = new ReflectionClass(HasSlugs::class)->getFileName();
+
+        return dirname($trait, 2).'/database/migrations';
     }
 }

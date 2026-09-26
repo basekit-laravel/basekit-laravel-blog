@@ -2,98 +2,100 @@
 
 declare(strict_types=1);
 
+use BasekitLaravel\BasekitLaravelBlog\Enums\PostStatus;
+use BasekitLaravel\BasekitLaravelBlog\Models\Category;
 use BasekitLaravel\BasekitLaravelBlog\Models\Post;
+use BasekitLaravel\BasekitLaravelBlog\Models\PostTranslation;
+use BasekitLaravel\BasekitLaravelBlog\Models\Tag;
 
-it('casts boolean and date attributes', function (): void {
-    $post = Post::create([
-        'title' => 'Post',
-        'slug' => 'post',
-        'excerpt' => 'Exc.',
-        'content' => '<p>Body.</p>',
-        'tags' => ['laravel', 'php'],
-        'featured' => true,
-        'is_published' => true,
+it('generates a slug from the title of the first saved locale', function (): void {
+    $post = makePost('Caching in Laravel');
+
+    expect($post->slug('en'))->toBe('caching-in-laravel')
+        ->and($post->slug('hu'))->toBeNull();
+});
+
+it('keeps the slug when the title changes', function (): void {
+    $post = makePost('Caching in Laravel');
+
+    $post->translations()->update(['title' => 'Caching in Laravel 13']);
+
+    expect($post->fresh()->slug('en'))->toBe('caching-in-laravel');
+});
+
+it('gives every locale its own slug', function (): void {
+    $post = makePost('Caching in Laravel');
+
+    $post->translations()->create([
+        'locale' => 'hu',
+        'title' => 'Gyorsítótárazás Laravelben',
+        'status' => PostStatus::Published,
         'published_at' => now()->subDay(),
     ]);
 
-    expect($post->featured)->toBeTrue()
-        ->and($post->is_published)->toBeTrue()
-        ->and($post->published_at)->toBeInstanceOf(DateTimeInterface::class)
-        ->and($post->tags)->toBe(['laravel', 'php']);
+    expect($post->fresh()->slugMap())->toBe([
+        'en' => 'caching-in-laravel',
+        'hu' => 'gyorsitotarazas-laravelben',
+    ]);
 });
 
-it('exposes the slug as the route key', function (): void {
-    $post = Post::create([
-        'title' => 'Post',
-        'slug' => 'post',
-        'excerpt' => 'Exc.',
-        'content' => '<p>Body.</p>',
-        'is_published' => true,
+it('does not generate a slug when slug generation is disabled', function (): void {
+    config()->set('basekit-laravel-blog.generate_slugs', false);
+
+    $post = makePost('Caching in Laravel');
+
+    expect($post->slug('en'))->toBeNull();
+});
+
+it('generates a slug for categories and tags from their names', function (): void {
+    $category = Category::factory()->create();
+    $category->translations()->create(['locale' => 'hu', 'name' => 'Laravel tippek']);
+
+    $tag = Tag::factory()->create();
+    $tag->translations()->create(['locale' => 'en', 'name' => 'Queue Jobs']);
+
+    expect($category->slug('hu'))->toBe('laravel-tippek')
+        ->and($tag->slug('en'))->toBe('queue-jobs');
+});
+
+it('resolves a post by the slug of a locale', function (): void {
+    $post = makePost('Caching in Laravel');
+    $post->translations()->create([
+        'locale' => 'hu',
+        'title' => 'Gyorsítótárazás',
+        'status' => PostStatus::Published,
         'published_at' => now()->subDay(),
     ]);
 
-    expect($post->getRouteKeyName())->toBe('slug');
+    expect(Post::query()->whereSlug('caching-in-laravel', 'en')->first()?->is($post))->toBeTrue()
+        ->and(Post::query()->whereSlug('gyorsitotarazas', 'hu')->first()?->is($post))->toBeTrue()
+        ->and(Post::query()->whereSlug('gyorsitotarazas', 'en')->first())->toBeNull();
 });
 
-it('formats the published date shortly', function (): void {
-    $post = Post::create([
-        'title' => 'Post',
-        'slug' => 'post',
-        'excerpt' => 'Exc.',
-        'content' => '<p>Body.</p>',
-        'published_at' => now()->parse('2025-11-18 09:00:00'),
+it('hides a soft deleted post from slug resolution', function (): void {
+    $post = makePost('Caching in Laravel');
+    $post->delete();
+
+    expect(Post::query()->whereSlug('caching-in-laravel', 'en')->first())->toBeNull()
+        ->and(Post::withTrashed()->whereSlug('caching-in-laravel', 'en')->first()?->is($post))->toBeTrue();
+});
+
+it('lists the locales a post is published in', function (): void {
+    $post = makePost('Caching in Laravel');
+    $post->translations()->create([
+        'locale' => 'hu',
+        'title' => 'Gyorsítótárazás',
+        'status' => PostStatus::Draft,
     ]);
 
-    expect($post->published_short)->toBe('Nov 18, 2025');
+    expect($post->publishedLocales())->toBe(['en'])
+        ->and($post->isPublishedIn('en'))->toBeTrue()
+        ->and($post->isPublishedIn('hu'))->toBeFalse();
 });
 
-it('falls back to the title for the seo title', function (): void {
-    $post = Post::create([
-        'title' => 'Custom title',
-        'slug' => 'post',
-        'excerpt' => 'Exc.',
-        'content' => '<p>Body.</p>',
-    ]);
+it('keeps the identity free of translated content', function (): void {
+    $post = makePost('Caching in Laravel');
 
-    expect($post->seo_title)->toBe('Custom title');
-});
-
-it('derives a seo description from the excerpt', function (): void {
-    $post = Post::create([
-        'title' => 'Post',
-        'slug' => 'post',
-        'excerpt' => 'A useful excerpt about caching.',
-        'content' => '<p>Body.</p>',
-    ]);
-
-    expect($post->seo_description)->toBe('A useful excerpt about caching.');
-});
-
-it('knows whether a post is published', function (): void {
-    expect(Post::create([
-        'title' => 'Published',
-        'slug' => 'published',
-        'excerpt' => 'Exc.',
-        'content' => '<p>Body.</p>',
-        'is_published' => true,
-        'published_at' => now()->subDay(),
-    ])->isPublished())->toBeTrue();
-
-    expect(Post::create([
-        'title' => 'Draft',
-        'slug' => 'draft',
-        'excerpt' => 'Exc.',
-        'content' => '<p>Body.</p>',
-        'is_published' => false,
-        'published_at' => now()->subDay(),
-    ])->isPublished())->toBeFalse();
-
-    expect(Post::create([
-        'title' => 'Future',
-        'slug' => 'future',
-        'excerpt' => 'Exc.',
-        'content' => '<p>Body.</p>',
-        'is_published' => true,
-        'published_at' => now()->addDay(),
-    ])->isPublished())->toBeFalse();
+    expect(PostTranslation::query()->count())->toBe(1)
+        ->and($post->translations->first()->title)->toBe('Caching in Laravel');
 });

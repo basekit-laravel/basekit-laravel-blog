@@ -2,27 +2,12 @@
 
 declare(strict_types=1);
 
+use BasekitLaravel\BasekitLaravelBlog\Enums\PostStatus;
 use BasekitLaravel\BasekitLaravelBlog\Models\Post;
 
 beforeEach(function (): void {
-    Post::create([
-        'title' => 'Caching in Laravel',
-        'slug' => 'caching-in-laravel',
-        'excerpt' => 'A practical guide.',
-        'content' => '<p>Body text.</p>',
-        'category' => 'Laravel',
-        'is_published' => true,
-        'published_at' => now()->subDay(),
-    ]);
-
-    Post::create([
-        'title' => 'Hidden post',
-        'slug' => 'hidden-post',
-        'excerpt' => 'A draft.',
-        'content' => '<p>Draft.</p>',
-        'is_published' => false,
-        'published_at' => now()->subDay(),
-    ]);
+    makePost('Caching in Laravel');
+    makePost('Hidden post', ['status' => PostStatus::Draft, 'published_at' => null]);
 });
 
 it('lists published posts on the index', function (): void {
@@ -32,24 +17,20 @@ it('lists published posts on the index', function (): void {
         ->assertDontSee('Hidden post');
 });
 
-it('renders a published post', function (): void {
+it('renders a published post at its slug', function (): void {
     $this->get('/blog/caching-in-laravel')
         ->assertOk()
         ->assertSee('Caching in Laravel')
         ->assertSee('Body text.');
 });
 
-it('returns 404 for an unpublished post', function (): void {
+it('returns 404 for a draft', function (): void {
     $this->get('/blog/hidden-post')->assertNotFound();
 });
 
-it('returns 404 for a not-yet-published post', function (): void {
-    Post::create([
-        'title' => 'Future',
-        'slug' => 'future',
-        'excerpt' => 'Later.',
-        'content' => '<p>Later.</p>',
-        'is_published' => true,
+it('returns 404 for a not yet published post', function (): void {
+    makePost('Future', [
+        'status' => PostStatus::Scheduled,
         'published_at' => now()->addDay(),
     ]);
 
@@ -60,9 +41,17 @@ it('returns 404 for an unknown slug', function (): void {
     $this->get('/blog/missing')->assertNotFound();
 });
 
-it('serves an rss feed', function (): void {
+it('serves an rss feed of the default locale', function (): void {
     $this->get('/blog/rss')
         ->assertOk()
         ->assertHeader('Content-Type', 'application/rss+xml; charset=utf-8')
         ->assertSee('Caching in Laravel');
+});
+
+it('links the index to the article of the requested locale', function (): void {
+    $post = Post::query()->whereHas('translations', fn ($query) => $query->where('title', 'Caching in Laravel'))->firstOrFail();
+
+    $this->get('/blog')
+        ->assertOk()
+        ->assertSee(url('/blog/'.$post->slug('en')), escape: false);
 });

@@ -1,20 +1,33 @@
 {
   "name": "basekit-laravel/basekit-laravel-blog",
-  "description": "Basekit Laravel Blog is a reusable, optional feature package for publishing and rendering blog posts on Basekit-powered Laravel websites.",
+  "description": "Basekit Laravel Blog is a reusable, optional feature package for publishing and rendering localized blog posts on Basekit-powered Laravel websites.",
   "keywords": [
     "laravel",
     "basekit",
     "blog",
     "posts",
     "articles",
-    "laravel-plugin-skeleton"
+    "localization",
+    "i18n"
   ],
   "homepage": "https://github.com/gergo-tar/basekit-laravel-blog",
   "license": "MIT",
   "repositories": [
     {
-      "type": "vcs",
-      "url": "https://github.com/basekit-laravel/basekit-laravel-blocks.git"
+      "type": "path",
+      "url": "../basekit-laravel-blocks"
+    },
+    {
+      "type": "path",
+      "url": "../basekit-laravel-ui"
+    },
+    {
+      "type": "path",
+      "url": "../basekit-laravel-seo"
+    },
+    {
+      "type": "path",
+      "url": "../basekit-laravel-slugs"
     }
   ],
   "authors": [
@@ -25,16 +38,21 @@
     }
   ],
   "require": {
-    "php": "^8.3|^8.4|^8.5",
-    "basekit-laravel/basekit-laravel-ui": "^1.11",
-    "basekit-laravel/basekit-laravel-blocks": "^1.5",
+    "php": "^8.4|^8.5",
+    "basekit-laravel/basekit-laravel-seo": "*",
+    "basekit-laravel/basekit-laravel-slugs": "*",
     "illuminate/contracts": "^13",
     "illuminate/database": "^13",
     "illuminate/http": "^13",
     "illuminate/routing": "^13",
-    "illuminate/support": "^13"
+    "illuminate/support": "^13",
+    "illuminate/validation": "^13",
+    "illuminate/view": "^13",
+    "basekit-laravel/basekit-laravel-ui": "@dev",
+    "basekit-laravel/basekit-laravel-blocks": "@dev"
   },
   "require-dev": {
+    "filament/filament": "^5.8",
     "laravel/pint": "^1.17",
     "larastan/larastan": "^3.8",
     "mockery/mockery": "^1.6",
@@ -42,14 +60,15 @@
     "orchestra/testbench": "11.*",
     "pestphp/pest": "^5.0",
     "pestphp/pest-plugin-laravel": "^5.0",
+    "pestphp/pest-plugin-livewire": "^5.0",
     "phpstan/extension-installer": "^1.4",
     "phpstan/phpstan-deprecation-rules": "^2.0",
-    "rector/rector": "^2.5",
-    "gehrisandro/tailwind-merge-php": "^1.2"
+    "rector/rector": "^2.5"
   },
   "autoload": {
     "psr-4": {
-      "BasekitLaravel\\BasekitLaravelBlog\\": "src/"
+      "BasekitLaravel\\BasekitLaravelBlog\\": "src/",
+      "BasekitLaravel\\BasekitLaravelBlog\\Database\\Factories\\": "database/factories/"
     }
   },
   "autoload-dev": {
